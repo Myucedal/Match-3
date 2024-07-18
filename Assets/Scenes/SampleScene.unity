@@ -25082,8 +25082,7 @@ MonoBehaviour:
   - {fileID: 6316471003297321511, guid: a306ce22c9e0a6e4494c9e7a3bf3fd38, type: 3}
   - {fileID: 132259768117519982, guid: accd52544d4308546a25176f3dfa1f5b, type: 3}
   - {fileID: 7955246393574727022, guid: db1a80337103a604fab291ad228015c0, type: 3}
-  - {fileID: 8156537653414686099, guid: 1e11f38f0fbe6c64bb6199c558254e56, type: 3}
-  - {fileID: 7883083009256432499, guid: 31fdf643bf4e8cd4a86488eae9fc5f8a, type: 3}
+  - {fileID: 7955246393574727022, guid: db1a80337103a604fab291ad228015c0, type: 3}
   potionBoardGo: {fileID: 535702104}
   scoreText: {fileID: 924632955}
   arrayLayout:
@@ -25099,6 +25098,8 @@ MonoBehaviour:
   movesText: {fileID: 1364817918}
   winPanel: {fileID: 1561569355}
   losePanel: {fileID: 1493751867}
+  ColorBomb: {fileID: 7883083009256432499, guid: 31fdf643bf4e8cd4a86488eae9fc5f8a, type: 3}
+  TNT: {fileID: 8156537653414686099, guid: 1e11f38f0fbe6c64bb6199c558254e56, type: 3}
 --- !u!4 &535702106
 Transform:
   m_ObjectHideFlags: 0

@@ -1,20 +1,24 @@
 using System.Collections;
 using System.Collections.Generic;
-using Unity.VisualScripting;
 using UnityEngine;
 
-public class Potion : MonoBehaviour
+public class Bonus : MonoBehaviour
 {
     public ParticleSystem[] explosionEffects; // Particle effect array to store multiple effects
-    public PotionType potionType;
+    public BonusType bonusType;
     private bool isTouchable = true;
 
     public int xIndex;
     public int yIndex;
 
     public bool isMatched;
+    private Vector2 currentPos;
+    private Vector2 targetPos;
+
     public bool isMoving;
-    public Potion(int _x, int _y)
+
+
+    public Bonus(int _x, int _y)
     {
         xIndex = _x;
         yIndex = _y;
@@ -27,7 +31,7 @@ public class Potion : MonoBehaviour
     void Awake()
     {
         explosionEffects = GetComponentsInChildren<ParticleSystem>();
-      
+
     }
     public void SetIndicies(int _x, int _y)
     {
@@ -78,15 +82,10 @@ public class Potion : MonoBehaviour
 
 }
 
-public enum PotionType
+
+public enum BonusType
 {
-    
-    Red,
-    Blue,
-    Purple,
-    Green,
-    White,
     TNT,
     ColorBomb
-  
+
 }

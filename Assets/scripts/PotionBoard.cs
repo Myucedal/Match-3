@@ -38,11 +38,14 @@ public class PotionBoard : MonoBehaviour
     private bool canTouch = true;
     private int scorefornext = 200;
     static public int movesindex = 0;
-     
+    public GameObject ColorBomb;
+    public GameObject TNT;
+    private Potion matchedPotion;
+
     private void Awake()
     {
         Instance = this;
-        Time.timeScale = 1f;
+        Time.timeScale = 0.8f;
 
 
     }
@@ -250,16 +253,12 @@ public class PotionBoard : MonoBehaviour
 
     public bool CheckBoard()
     {
-        //Debug.Log("Checking Board");
-
-
-        List<Potion> potions = new();
         bool hasMatched = false;
+
         for (int x = 0; x < width; x++)
         {
             for (int y = 0; y < height; y++)
             {
-                Debug.Log(potionBoard.Length);
                 if (potionBoard[x, y].isUsable)
                 {
                     Potion potion = potionBoard[x, y].potion.GetComponent<Potion>();
@@ -268,8 +267,24 @@ public class PotionBoard : MonoBehaviour
                     {
                         // Horizontal check
                         MatchResult matchedPotions = IsConnected(potion, new Vector2Int(1, 0), new Vector2Int(-1, 0));
-                        if (matchedPotions.connectedPotions.Count >= 3)
+                        if (matchedPotions.connectedPotions.Count == 3)
                         {
+                            potionsToRemove.AddRange(matchedPotions.connectedPotions);
+                            foreach (Potion pot in matchedPotions.connectedPotions)
+                                pot.isMatched = true;
+                            hasMatched = true;
+                        }
+                        else if (matchedPotions.connectedPotions.Count == 4)
+                        {
+                            matchedPotion = potion; // 4'lü eþleþme olduðunda matchedPotion'ý atayýn
+                            potionsToRemove.AddRange(matchedPotions.connectedPotions);
+                            foreach (Potion pot in matchedPotions.connectedPotions)
+                                pot.isMatched = true;
+                            hasMatched = true;
+                        }
+                        else if (matchedPotions.connectedPotions.Count >= 5)
+                        {
+                            matchedPotion = potion; // 5 veya daha fazla eþleþme olduðunda matchedPotion'ý atayýn
                             potionsToRemove.AddRange(matchedPotions.connectedPotions);
                             foreach (Potion pot in matchedPotions.connectedPotions)
                                 pot.isMatched = true;
@@ -278,8 +293,24 @@ public class PotionBoard : MonoBehaviour
 
                         // Vertical check
                         matchedPotions = IsConnected(potion, new Vector2Int(0, 1), new Vector2Int(0, -1));
-                        if (matchedPotions.connectedPotions.Count >= 3)
+                        if (matchedPotions.connectedPotions.Count == 3)
                         {
+                            potionsToRemove.AddRange(matchedPotions.connectedPotions);
+                            foreach (Potion pot in matchedPotions.connectedPotions)
+                                pot.isMatched = true;
+                            hasMatched = true;
+                        }
+                        else if (matchedPotions.connectedPotions.Count == 4)
+                        {
+                            matchedPotion = potion; // 4'lü eþleþme olduðunda matchedPotion'ý atayýn
+                            potionsToRemove.AddRange(matchedPotions.connectedPotions);
+                            foreach (Potion pot in matchedPotions.connectedPotions)
+                                pot.isMatched = true;
+                            hasMatched = true;
+                        }
+                        else if (matchedPotions.connectedPotions.Count >= 5)
+                        {
+                            matchedPotion = potion; // 5 veya daha fazla eþleþme olduðunda matchedPotion'ý atayýn
                             potionsToRemove.AddRange(matchedPotions.connectedPotions);
                             foreach (Potion pot in matchedPotions.connectedPotions)
                                 pot.isMatched = true;
@@ -291,7 +322,24 @@ public class PotionBoard : MonoBehaviour
         }
         return hasMatched;
     }
+    private void CreateTNT(Vector2Int position)
+    {
+        GameObject tntObject = Instantiate(TNT, new Vector2(position.x - spacingX, position.y - spacingY), Quaternion.identity);
+        tntObject.transform.parent = potionBoardGo.transform;
+        Potion   tntBonus = tntObject.GetComponent<Potion>();
+        tntBonus.SetIndicies(position.x, position.y);
+        potionBoard[position.x, position.y].potion = tntObject;
+    }
 
+    private void CreateColorBomb(Vector2Int position)
+    {
+        GameObject colorBombObject = Instantiate(ColorBomb, new Vector2(position.x - spacingX, position.y - spacingY), Quaternion.identity);
+        colorBombObject.transform.parent = potionBoardGo.transform;
+        Debug.Log(potionBoardGo.transform);
+        Potion colorBombBonus = colorBombObject.GetComponent<Potion>();
+        colorBombBonus.SetIndicies(position.x, position.y);
+        potionBoard[position.x, position.y].potion = colorBombObject;
+    }
     MatchResult IsConnected(Potion potion, Vector2Int dir1, Vector2Int dir2)
     {
         List<Potion> connectedPotions = new();
@@ -332,15 +380,29 @@ public class PotionBoard : MonoBehaviour
 
     void CheckDirection(Potion pot, Vector2Int direction, List<Potion> connectedPotions)
     {
+
+        
         PotionType potionType = pot.potionType;
         int x = pot.xIndex + direction.x;
         int y = pot.yIndex + direction.y;
 
+        Debug.Log("pot.xIndex " + pot.xIndex + "      direction.x" + direction.x);
+        Debug.Log("pot.yIndex " + pot.yIndex + "      direction.y" +direction.y);
         while (x >= 0 && x < width && y >= 0 && y < height)
         {
+          
+
             if (potionBoard[x, y].isUsable)
             {
                 Potion neighbourPotion = potionBoard[x, y].potion.GetComponent<Potion>();
+
+                if (potionType == PotionType.ColorBomb || potionType == PotionType.TNT)
+                {
+                    connectedPotions.Add(neighbourPotion);
+
+                }
+
+                
 
                 // does our potionType match? it must also not be matched
                 if (!neighbourPotion.isMatched && neighbourPotion.potionType == potionType)
@@ -444,14 +506,14 @@ public class PotionBoard : MonoBehaviour
 
     private void ExplodeMatch()
     {
-
-
         StartCoroutine(ExplodeMatchCoroutine());
     }
 
     private IEnumerator ExplodeMatchCoroutine()
     {
         canTouch = false;
+        Vector2Int matchedPotionPosition = new Vector2Int(matchedPotion.xIndex, matchedPotion.yIndex);
+
         // Tüm potionsToRemove listesini kontrol et
         foreach (Potion potion in potionsToRemove)
         {
@@ -459,7 +521,6 @@ public class PotionBoard : MonoBehaviour
             {
                 continue;
             }
-            Debug.Log("patlamasý gerekenler" + potion.gameObject.name);
             potion.Explode();
         }
 
@@ -477,16 +538,21 @@ public class PotionBoard : MonoBehaviour
             }
 
             // Puan ekle
-            AddScore(3); // Üçlü eþleþme için
-                         // Eðer daha büyük eþleþmeler varsa bunu da hesaba kat
-            if (potionsToRemove.Count > 3)
-            {
-                AddScore(potionsToRemove.Count); // Dörtlü veya daha fazla eþleþme için
-            }
+            AddScore(potionsToRemove.Count);
 
             // Ýksiri yok et ve board'u güncelle
             Destroy(potion.gameObject);
             potionBoard[potion.xIndex, potion.yIndex].potion = null;
+        }
+
+        // TNT veya ColorBomb oluþtur
+        if (potionsToRemove.Count == 4)
+        {
+            CreateTNT(matchedPotionPosition);
+        }
+        else if (potionsToRemove.Count >= 5)
+        {
+            CreateColorBomb(matchedPotionPosition);
         }
 
         // Listeyi temizle
@@ -500,6 +566,7 @@ public class PotionBoard : MonoBehaviour
         }
         canTouch = true;
     }
+
 
 
 
@@ -598,3 +665,5 @@ public class PotionBoard : MonoBehaviour
         None
     }
 }
+
+

@@ -82,9 +82,12 @@ public class Potion : MonoBehaviour
 
 public enum PotionType
 {
+    
     Red,
     Blue,
     Purple,
     Green,
-    White
+    White,
+    TNT,
+    ColorBomb
 }

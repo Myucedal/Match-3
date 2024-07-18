@@ -30,24 +30,26 @@ public class PotionBoard : MonoBehaviour
     // Liste tanýmý
     private List<Potion> potionsToRemove;
     private Potion selectedPotion;
-    public int totalMoves = 20; // Toplam hamle sayýsý
+     static List<int> Totalmoveslist;
     public TextMeshProUGUI movesText; // UI'daki hamle sayýsýný gösteren text
     public GameObject winPanel; // Kazanma paneli
     public GameObject losePanel; // Kaybetme paneli
     private bool isBoardLocked = false;
-    private bool canTouch= true;
+    private bool canTouch = true;
     private int scorefornext = 200;
-
+    static public int movesindex = 0;
+     
     private void Awake()
     {
         Instance = this;
         Time.timeScale = 1f;
 
-       
+
     }
 
     private void Start()
     {
+        Totalmoveslist = new List<int> { 20, 18, 16, 14, 12, 10 };
         potionsToRemove = new List<Potion>(); // Listeyi baþlatma
         InitailizeBoard();
         UpdateMovesText(); // Hamle sayýsýný güncelle
@@ -56,7 +58,7 @@ public class PotionBoard : MonoBehaviour
     {
         if (movesText != null)
         {
-            movesText.text = System.Convert.ToString(totalMoves);
+            movesText.text = ":" + System.Convert.ToString(Totalmoveslist[movesindex]);
         }
     }
     private void EndGame(bool hasWon)
@@ -72,7 +74,7 @@ public class PotionBoard : MonoBehaviour
     }
     private void CheckEndGame()
     {
-        if (totalMoves <= 0)
+        if (Totalmoveslist[movesindex] <= 0)
         {
             if (score >= scorefornext)
             {
@@ -89,10 +91,11 @@ public class PotionBoard : MonoBehaviour
         // Bir sonraki seviyeye geçiþ için gerekli iþlemler
         // Örneðin, yeni bir sahne yüklemek veya oyunu yeniden baþlatmak
         UnityEngine.SceneManagement.SceneManager.LoadScene(UnityEngine.SceneManagement.SceneManager.GetActiveScene().name);
-        totalMoves -= 2;
+
+        movesindex++;
         scorefornext += 100;
 
-    
+
     }
 
     public void Retry()
@@ -117,7 +120,7 @@ public class PotionBoard : MonoBehaviour
     }
 
     private void OnMouseDown()
-    {   
+    {
 
         // Fare düðmesine basýldýðýnda yapýlacak iþlemler buraya yazýlacak
         Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
@@ -214,20 +217,20 @@ public class PotionBoard : MonoBehaviour
         {
             for (int x = 0; x < width; x++)
             {
-                    Vector2 position = new Vector2(x - spacingX, y - spacingY);
+                Vector2 position = new Vector2(x - spacingX, y - spacingY);
 
-                    int randomIndex = Random.Range(0, potionPrefabs.Length);
-                    GameObject potionObject = Instantiate(potionPrefabs[randomIndex], position, Quaternion.identity);
-                    potionObject.transform.parent = potionBoardGo.transform;
+                int randomIndex = Random.Range(0, potionPrefabs.Length);
+                GameObject potionObject = Instantiate(potionPrefabs[randomIndex], position, Quaternion.identity);
+                potionObject.transform.parent = potionBoardGo.transform;
 
-                    Potion potion = potionObject.GetComponent<Potion>();
-                    potion.SetIndicies(x, y);
+                Potion potion = potionObject.GetComponent<Potion>();
+                potion.SetIndicies(x, y);
 
-                    potionBoard[x, y] = new Node(true, potionObject);
-                    potions.Add(potion); // potions listesine iksiri ekle
-                }
+                potionBoard[x, y] = new Node(true, potionObject);
+                potions.Add(potion); // potions listesine iksiri ekle
             }
-        
+        }
+
 
         if (CheckBoard())
         {
@@ -248,7 +251,7 @@ public class PotionBoard : MonoBehaviour
     public bool CheckBoard()
     {
         //Debug.Log("Checking Board");
-        
+
 
         List<Potion> potions = new();
         bool hasMatched = false;
@@ -441,13 +444,13 @@ public class PotionBoard : MonoBehaviour
 
     private void ExplodeMatch()
     {
-      
+
 
         StartCoroutine(ExplodeMatchCoroutine());
     }
 
     private IEnumerator ExplodeMatchCoroutine()
-    {   
+    {
         canTouch = false;
         // Tüm potionsToRemove listesini kontrol et
         foreach (Potion potion in potionsToRemove)
@@ -510,13 +513,13 @@ public class PotionBoard : MonoBehaviour
             {
                 if (potionBoard[x, y].isUsable && potionBoard[x, y].potion == null)
                 {
-                    for (int k =y; k < height; k++)
+                    for (int k = y; k < height; k++)
                     {
                         if (potionBoard[x, k].isUsable && potionBoard[x, k].potion != null)
                         {
                             potionBoard[x, y].potion = potionBoard[x, k].potion;
                             potionBoard[x, k].potion = null;
-                           
+
                             Potion potion = potionBoard[x, y].potion.GetComponent<Potion>();
                             potion.SetIndicies(x, y);
                             potion.MoveToTarget(new Vector2(x - spacingX, y - spacingY));
@@ -566,7 +569,7 @@ public class PotionBoard : MonoBehaviour
         else
         {
             ExplodeMatch();
-            totalMoves--; // Hamle sayýsýný azalt
+            Totalmoveslist[movesindex]--; // Hamle sayýsýný azalt
             UpdateMovesText(); // Hamle sayýsýný güncelle
             CheckEndGame(); // Oyunun bitip bitmediðini kontrol et
         }

@@ -342,73 +342,67 @@ public class PotionBoard : MonoBehaviour
     }
     MatchResult IsConnected(Potion potion, Vector2Int dir1, Vector2Int dir2)
     {
-        List<Potion> connectedPotions = new();
-        PotionType potionType = potion.potionType;
-        connectedPotions.Add(potion);
+        List<Potion> connectedPotions1 = CheckDirection(potion, dir1);
+        List<Potion> connectedPotions2 = CheckDirection(potion, dir2);
 
-        CheckDirection(potion, dir1, connectedPotions);
-        CheckDirection(potion, dir2, connectedPotions);
+        // Eþleþmeleri kontrol etmeden önce her iki yönün merkez potion'ýný ekleyin
+        connectedPotions1.Insert(0, potion);
+        connectedPotions2.Insert(0, potion);
 
-        int matchCount = connectedPotions.Count;
-
-        if (matchCount == 3)
+        // Eþleþmeleri deðerlendir
+        List<MatchResult> results = new List<MatchResult>();
+       
+        if (connectedPotions1.Count >= 3)
         {
-            return new MatchResult
+            results.Add(new MatchResult
             {
-                connectedPotions = connectedPotions,
-                direction = MatchDirection.Normal
-            };
+                connectedPotions = connectedPotions1,
+                direction = connectedPotions1.Count == 3 ? MatchDirection.Normal : MatchDirection.Long
+            });
         }
-        else if (matchCount > 3)
+
+        if (connectedPotions2.Count >= 3)
         {
-            return new MatchResult
+            results.Add(new MatchResult
             {
-                connectedPotions = connectedPotions,
-                direction = MatchDirection.Long
-            };
+                connectedPotions = connectedPotions2,
+                direction = connectedPotions2.Count == 3 ? MatchDirection.Normal : MatchDirection.Long
+            });
         }
-        else
+
+        // Eþleþmeler yoksa None döndür
+        if (results.Count == 0)
         {
             return new MatchResult
             {
-                connectedPotions = connectedPotions,
+                connectedPotions = new List<Potion> { potion },
                 direction = MatchDirection.None
             };
         }
+        
+
+        // Eðer birden fazla eþleþme varsa, en uzununu döndür
+        return results.OrderByDescending(r => r.connectedPotions.Count).First();
     }
 
 
-    void CheckDirection(Potion pot, Vector2Int direction, List<Potion> connectedPotions)
+    List<Potion> CheckDirection(Potion pot, Vector2Int direction)
     {
-
-        
+        List<Potion> directionMatches = new List<Potion>();
         PotionType potionType = pot.potionType;
         int x = pot.xIndex + direction.x;
         int y = pot.yIndex + direction.y;
 
-        Debug.Log("pot.xIndex " + pot.xIndex + "      direction.x" + direction.x);
-        Debug.Log("pot.yIndex " + pot.yIndex + "      direction.y" +direction.y);
         while (x >= 0 && x < width && y >= 0 && y < height)
         {
-          
-
             if (potionBoard[x, y].isUsable)
             {
                 Potion neighbourPotion = potionBoard[x, y].potion.GetComponent<Potion>();
 
-                if (potionType == PotionType.ColorBomb || potionType == PotionType.TNT)
-                {
-                    connectedPotions.Add(neighbourPotion);
-
-                }
-
-                
-
                 // does our potionType match? it must also not be matched
                 if (!neighbourPotion.isMatched && neighbourPotion.potionType == potionType)
                 {
-                    connectedPotions.Add(neighbourPotion);
-
+                    directionMatches.Add(neighbourPotion);
                     x += direction.x;
                     y += direction.y;
                 }
@@ -422,6 +416,8 @@ public class PotionBoard : MonoBehaviour
                 break;
             }
         }
+
+        return directionMatches;
     }
 
     public void SelectPotion(Potion _potion)
@@ -480,6 +476,7 @@ public class PotionBoard : MonoBehaviour
         _currentPotion.MoveToTarget(potionBoard[_targetPotion.xIndex, _targetPotion.yIndex].potion.transform.position);
         _targetPotion.MoveToTarget(potionBoard[_currentPotion.xIndex, _currentPotion.yIndex].potion.transform.position);
 
+     
         //Debug.Log("Swap completed.");
     }
     private void UpdateScoreText()
@@ -508,54 +505,62 @@ public class PotionBoard : MonoBehaviour
     {
         StartCoroutine(ExplodeMatchCoroutine());
     }
-
-    private IEnumerator ExplodeMatchCoroutine()
+    private List<Potion> TNTPotionList;
+    public  IEnumerator ExplodeTNT(Potion tntPotion)
     {
-        canTouch = false;
-        Vector2Int matchedPotionPosition = new Vector2Int(matchedPotion.xIndex, matchedPotion.yIndex);
+        int centerX = tntPotion.xIndex;
+        int centerY = tntPotion.yIndex;
+        
+        /////////////yield return new WaitForSeconds(1f);
 
-        // Tüm potionsToRemove listesini kontrol et
-        foreach (Potion potion in potionsToRemove)
+        // 3x3'lük alaný kontrol etmek için iki döngü kullanýlýr.
+        for (int x = - 1; x <= 1 ; x++)
         {
-            if (potion == null)
+            for (int y = - 1; y <= 1 ; y++)
             {
-                continue;
+
+
+                // Geçerli koordinatlarýn oyun tahtasýnýn sýnýrlarý içinde olup olmadýðýný kontrol edin.
+              
+
+                    // Ýlgili pozisyondaki iksiri alýn.
+                    Potion potion = potionBoard[centerX + x, centerY + y].potion.GetComponent<Potion>();
+                    if (x == centerX  &&  y == centerY)
+                    {
+                        continue;
+
+                    }
+                   else if (potion != null)
+                    {
+                        
+                        potion.Explode();
+                        //yield return new WaitForSeconds(0.5f);
+                        Destroy(potion);
+                    }
+                
             }
-            potion.Explode();
+            
+            tntPotion.Explode();
+            yield return new WaitForSeconds(0.5f);
+            Destroy(tntPotion);
+
         }
 
-        // Patlama efektlerinin oynatýlmasýný bekle
-        yield return new WaitForSeconds(0.5f);
+       
 
-        // Tüm potionsToRemove listesini tekrar kontrol et ve öðeleri yok et
-        for (int i = potionsToRemove.Count - 1; i >= 0; i--)
+        for ( int i = 0; i < potionsToRemove.Count; i++)
         {
-            Potion potion = potionsToRemove[i];
-            if (potion == null)
+            if (potionsToRemove[i] == null)
             {
+                
                 potionsToRemove.RemoveAt(i);
                 continue;
             }
 
-            // Puan ekle
-            AddScore(potionsToRemove.Count);
-
-            // Ýksiri yok et ve board'u güncelle
-            Destroy(potion.gameObject);
-            potionBoard[potion.xIndex, potion.yIndex].potion = null;
+            //Destroy(TNTPotionList[i].gameObject);
         }
-
-        // TNT veya ColorBomb oluþtur
-        if (potionsToRemove.Count == 4)
-        {
-            CreateTNT(matchedPotionPosition);
-        }
-        else if (potionsToRemove.Count >= 5)
-        {
-            CreateColorBomb(matchedPotionPosition);
-        }
-
         // Listeyi temizle
+        TNTPotionList.Clear();
         potionsToRemove.Clear();
 
         FillBoard();
@@ -565,11 +570,55 @@ public class PotionBoard : MonoBehaviour
             StartCoroutine(ExplodeMatchCoroutine()); // Yeni eþleþmeler varsa tekrar patlat
         }
         canTouch = true;
+
+
     }
+    private IEnumerator ExplodeMatchCoroutine()
+    {
+        canTouch = false;
+        Vector2Int matchedPotionPosition = new Vector2Int(matchedPotion.xIndex, matchedPotion.yIndex);
 
+            // Tüm potionsToRemove listesini tekrar kontrol et ve öðeleri yok et
+            for (int i = potionsToRemove.Count - 1; i >= 0; i--)
+            {
+                Potion potion = potionsToRemove[i];
+                if (potion == null)
+                {
+                
+                potionsToRemove.RemoveAt(i);
+                    continue;
+                }
+            potion.Explode();
+            // Puan ekle
+            AddScore(potionsToRemove.Count);
 
+                // Ýksiri yok et ve board'u güncelle
+                Destroy(potion.gameObject);
+                potionBoard[potion.xIndex, potion.yIndex].potion = null;
+            }
 
+            // TNT veya ColorBomb oluþtur
+            if (potionsToRemove.Count == 4)
+            {
+                CreateTNT(matchedPotionPosition);
+            }
+            else if (potionsToRemove.Count == 5)
+            {
+                CreateColorBomb(matchedPotionPosition);
+            }
 
+            // Listeyi temizle
+            potionsToRemove.Clear();
+
+            FillBoard();
+            yield return new WaitForSeconds(0.5f); // Yeni potionslarýn düþmesini bekle
+            if (CheckBoard())
+            {
+                StartCoroutine(ExplodeMatchCoroutine()); // Yeni eþleþmeler varsa tekrar patlat
+            }
+            canTouch = true;
+        
+    }
 
 
     private void FillBoard()
@@ -629,6 +678,22 @@ public class PotionBoard : MonoBehaviour
         yield return new WaitForSeconds(0.2f);
         bool hasMatch = CheckBoard();
 
+
+        if (_currentPotion.potionType == PotionType.TNT)
+        {
+            StartCoroutine(ExplodeTNT(_currentPotion));
+            Totalmoveslist[movesindex]--; // Hamle sayýsýný azalt
+            UpdateMovesText(); // Hamle sayýsýný güncelle
+            CheckEndGame();
+        }
+
+        if (_targetPotion.potionType == PotionType.TNT)
+        {
+            StartCoroutine(ExplodeTNT(_targetPotion));
+            Totalmoveslist[movesindex]--; // Hamle sayýsýný azalt
+            UpdateMovesText(); // Hamle sayýsýný güncelle
+            CheckEndGame(); // Oyunun bitip bitmediðini kontrol et
+        }
         if (!hasMatch)
         {
             DoSwap(_currentPotion, _targetPotion);
@@ -641,6 +706,10 @@ public class PotionBoard : MonoBehaviour
             CheckEndGame(); // Oyunun bitip bitmediðini kontrol et
         }
 
+      
+
+      
+
         isBoardLocked = false; // Tahtayý tekrar dokunulabilir yap
 
         isProcessingMove = false;
@@ -651,18 +720,16 @@ public class PotionBoard : MonoBehaviour
         return Mathf.Abs(_currentPotion.xIndex - _targetPotion.xIndex) + Mathf.Abs(_currentPotion.yIndex - _targetPotion.yIndex) == 1;
     }
 
-    public class MatchResult
+    public struct MatchResult
     {
         public List<Potion> connectedPotions;
         public MatchDirection direction;
     }
-
     public enum MatchDirection
     {
+        None,
         Normal,
-        Long,
-        Super,
-        None
+        Long
     }
 }
 

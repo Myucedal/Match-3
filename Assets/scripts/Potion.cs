@@ -37,6 +37,7 @@ public class Potion : MonoBehaviour
     }
     public void Explode()
     {
+        
         // Objeyi görünmez yap
         SpriteRenderer spriteRenderer = GetComponent<SpriteRenderer>();
         if (spriteRenderer != null)

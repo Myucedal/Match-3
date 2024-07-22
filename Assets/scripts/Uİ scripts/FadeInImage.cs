@@ -5,7 +5,7 @@ using System.Collections;
 public class FadeInImage : MonoBehaviour
 {
     public Image image;
-    public float duration = 2f;
+    public float duration = 4f;
 
     void Start()
     {

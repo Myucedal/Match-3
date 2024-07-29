@@ -3,7 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using Unity.VisualScripting;
 using UnityEngine;
-using TMPro; // TextMeshPro'yu kullanmak için ekleyin
+using UnityEngine.SceneManagement;
+using TMPro;
+using UnityEngine.UI; // TextMeshPro'yu kullanmak için ekleyin
 
 // Bu deðiþkeni PotionBoard sýnýfýnda tanýmla
 
@@ -34,6 +36,7 @@ public class PotionBoard : MonoBehaviour
     public TextMeshProUGUI movesText; // UI'daki hamle sayýsýný gösteren text
     public GameObject winPanel; // Kazanma paneli
     public GameObject losePanel; // Kaybetme paneli
+    public GameObject settingPanel; 
     private bool isBoardLocked = false;
     private bool canTouch = true;
     private int scorefornext = 200;
@@ -41,11 +44,14 @@ public class PotionBoard : MonoBehaviour
     public GameObject ColorBomb;
     public GameObject TNT;
     private Potion matchedPotion;
-    
+    public Button SettingButton;
+    public List<Potion> ColorbombList;
+
+
     private void Awake()
     {
         Instance = this;
-        Time.timeScale = 0.8f;
+        Time.timeScale = 1.0f;
 
 
     }
@@ -57,6 +63,7 @@ public class PotionBoard : MonoBehaviour
         potionsToRemove = new List<Potion>(); // Listeyi baþlatma
         InitailizeBoard();
         UpdateMovesText(); // Hamle sayýsýný güncelle
+        settingPanel.SetActive(false);
     }
     private void UpdateMovesText()
     {
@@ -93,6 +100,20 @@ public class PotionBoard : MonoBehaviour
             }
         }
     }
+
+
+    public void Settings()
+    {
+            settingPanel.SetActive(true);
+    }
+    public void ClosesettingButton() 
+    {
+        settingPanel.SetActive(false) ;
+    }
+    public void BackMenu()
+    {
+        SceneManager.LoadScene("UÝ scene");
+    }
     public void NextLevel()
     {
         // Bir sonraki seviyeye geçiþ için gerekli iþlemler
@@ -112,6 +133,9 @@ public class PotionBoard : MonoBehaviour
     }
     private void Update()
     {
+       
+        
+
         if (canTouch == true)
         {
             if (Input.GetMouseButtonDown(0))
@@ -129,7 +153,7 @@ public class PotionBoard : MonoBehaviour
         {
             isBoardLocked = true;
         }
-       
+
     }
 
     private void OnMouseDown()
@@ -554,7 +578,7 @@ public class PotionBoard : MonoBehaviour
             }
         }
         tntPotion.Explode();
-        yield return new WaitForSeconds(0.5f);
+        yield return new WaitForSeconds(0.8f);
 
         foreach (Potion pot in TNTPotionList)
         {
@@ -579,9 +603,54 @@ public class PotionBoard : MonoBehaviour
 
         }
     }
+    public IEnumerator ExplodeColorBomb(Potion Colorbomb, Potion targetpotion )
+    {
+
+
+        for (int x = 0; x < 6; x++)
+        {
+            for (int y = 0; y < 8; y++) 
+            {
+                Potion potion = potionBoard[x, y].potion.GetComponent<Potion>();
+                Debug.Log("potiontype" + potion.potionType+ "  \n " + targetpotion.potionType);
+                if (potion.potionType == targetpotion.potionType) 
+                {
+                    potion = potionBoard[x,y].potion.GetComponent<Potion>();
+                    ColorbombList.Add(potion);
+                    potion.Explode();
+                    
+                }
+            }
+        }
+
+        Colorbomb.Explode();
+        yield return new WaitForSeconds(0.8f);
+
+        foreach (Potion pot in ColorbombList)
+        {
+            potionBoard[pot.xIndex, pot.yIndex].potion = null;
+
+            Destroy(pot.gameObject);
+
+        }
+
+        potionBoard[Colorbomb.xIndex, Colorbomb.yIndex].potion = null;
+
+        Destroy(Colorbomb.gameObject);
+
+        ColorbombList.Clear();
+
+        FillBoard();
+        yield return new WaitForSeconds(1.0f); // Yeni potionslarýn düþmesini bekle
+        if (CheckBoard())
+        {
+
+            StartCoroutine(ExplodeMatchCoroutine()); // Yeni eþleþmeler varsa tekrar patlat
+
+        }
+    }
     private IEnumerator ExplodeMatchCoroutine()
     {
-        canTouch = false;
         Vector2Int matchedPotionPosition = new Vector2Int(matchedPotion.xIndex, matchedPotion.yIndex);
 
             // Tüm potionsToRemove listesini tekrar kontrol et ve öðeleri yok et
@@ -615,9 +684,10 @@ public class PotionBoard : MonoBehaviour
         // TNT veya ColorBomb oluþtur
         if (potionsToRemove.Count == 4)
             {
-                CreateTNT(matchedPotionPosition);
-            }
-            else if (potionsToRemove.Count == 5)
+            CreateTNT(matchedPotionPosition);
+
+        }
+        else if (potionsToRemove.Count == 5)
             {
                 CreateColorBomb(matchedPotionPosition);
             }
@@ -706,6 +776,24 @@ public class PotionBoard : MonoBehaviour
         if (_targetPotion.potionType == PotionType.TNT)
         {
             StartCoroutine(ExplodeTNT(_targetPotion));
+            Totalmoveslist[movesindex]--; // Hamle sayýsýný azalt
+            UpdateMovesText(); // Hamle sayýsýný güncelle"
+            CheckEndGame(); // Oyunun bitip bitmediðini kontrol et
+            hasMatch = true;
+
+        }
+        if (_currentPotion.potionType == PotionType.ColorBomb)
+        {
+            StartCoroutine(ExplodeColorBomb(_currentPotion,_targetPotion));
+            Totalmoveslist[movesindex]--; // Hamle sayýsýný azalt
+            UpdateMovesText(); // Hamle sayýsýný güncelle
+            CheckEndGame();
+            hasMatch = true;
+        }
+
+        if (_targetPotion.potionType == PotionType.ColorBomb)
+        {
+            StartCoroutine(ExplodeColorBomb(_targetPotion, _currentPotion));
             Totalmoveslist[movesindex]--; // Hamle sayýsýný azalt
             UpdateMovesText(); // Hamle sayýsýný güncelle"
             CheckEndGame(); // Oyunun bitip bitmediðini kontrol et

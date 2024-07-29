@@ -5,6 +5,7 @@ using UnityEngine;
 
 public class Potion : MonoBehaviour
 {
+
     public ParticleSystem[] explosionEffects; // Particle effect array to store multiple effects
     public PotionType potionType;
     private bool isTouchable = true;
@@ -48,7 +49,10 @@ public class Potion : MonoBehaviour
         // Patlama efektlerini tetikle
         foreach (var effect in explosionEffects)
         {
-            effect.Play();
+            if (effect != null)
+            {
+                effect.Play();
+            }
         }
     }
 

@@ -5,7 +5,8 @@ using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using TMPro;
-using UnityEngine.UI; // TextMeshPro'yu kullanmak için ekleyin
+using UnityEngine.UI;
+using UnityEngine.UIElements; // TextMeshPro'yu kullanmak için ekleyin
 
 // Bu deðiþkeni PotionBoard sýnýfýnda tanýmla
 
@@ -44,14 +45,14 @@ public class PotionBoard : MonoBehaviour
     public GameObject ColorBomb;
     public GameObject TNT;
     private Potion matchedPotion;
-    public Button SettingButton;
+    public UnityEngine.UI.Button SettingButton;
     public List<Potion> ColorbombList;
-
+    public Vector2 targetPosition;
 
     private void Awake()
     {
         Instance = this;
-        Time.timeScale = 1.0f;
+        Time.timeScale = 1f;
 
 
     }
@@ -358,18 +359,18 @@ public class PotionBoard : MonoBehaviour
 
         return hasMatched;
     }
-    private void CreateTNT(Vector2Int position)
-    {
-        GameObject tntObject = Instantiate(TNT, new Vector2(position.x - spacingX, position.y - spacingY), Quaternion.identity);
+    private void CreateTNT()
+    {  // - spacingX - spacingY
+        GameObject tntObject = Instantiate(TNT, new Vector2(targetPosition.x - spacingX, targetPosition.y- spacingY), Quaternion.identity);
         tntObject.transform.parent = potionBoardGo.transform;
         Potion   tntBonus = tntObject.GetComponent<Potion>();
-        tntBonus.SetIndicies(position.x, position.y);
-        potionBoard[position.x, position.y].potion = tntObject;
+        tntBonus.SetIndicies(Mathf.RoundToInt(targetPosition.x), Mathf.RoundToInt(targetPosition.y));
+        potionBoard[Mathf.RoundToInt(targetPosition.x),Mathf.RoundToInt(targetPosition.y)].potion = tntObject;
     }
 
     private void CreateColorBomb(Vector2Int position)
     {
-        GameObject colorBombObject = Instantiate(ColorBomb, new Vector2(position.x - spacingX, position.y - spacingY), Quaternion.identity);
+        GameObject colorBombObject = Instantiate(ColorBomb, new Vector2(position.x - spacingX - 0.5f, position.y - spacingY - 0.5f), Quaternion.identity);
         colorBombObject.transform.parent = potionBoardGo.transform;
         Potion colorBombBonus = colorBombObject.GetComponent<Potion>();
         colorBombBonus.SetIndicies(position.x, position.y);
@@ -489,8 +490,10 @@ public class PotionBoard : MonoBehaviour
         {
             isProcessingMove = false;
             return;
-        }
+        };
 
+
+        targetPosition.Set(_targetPotion.xIndex, _targetPotion.yIndex);
         DoSwap(_currentPotion, _targetPotion);
         StartCoroutine(ProcessMatches(_currentPotion, _targetPotion));
     }
@@ -684,7 +687,7 @@ public class PotionBoard : MonoBehaviour
         // TNT veya ColorBomb oluþtur
         if (potionsToRemove.Count == 4)
             {
-            CreateTNT(matchedPotionPosition);
+            CreateTNT();
 
         }
         else if (potionsToRemove.Count == 5)
